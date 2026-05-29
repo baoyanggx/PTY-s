@@ -141,7 +141,6 @@
   <p class="sales-total">Total Sales: $<span id="salesTotal">0.00</span></p>
   
   <button id="exportBtn" onclick="exportSalesCSV()">Export Completed Orders</button>
-  
   <button id="resetBtn" onclick="endOfDayReset()" style="margin-top: 10px; padding: 8px 12px; font-size: 16px; cursor: pointer; background: #ff4d4f; color: white; border: none; border-radius: 6px; margin-left: 10px;">End of Day Reset 🔄</button>
 </div>
 
@@ -151,15 +150,14 @@
     getFirestore, collection, addDoc, doc, deleteDoc, onSnapshot, query, orderBy 
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ⚠️ TODO: Replace with YOUR specific Firebase configuration block
   const firebaseConfig = {
     apiKey: "AIzaSyAcoZjdtKwRy-t03zySE_2WmNWrFLpu_Fg",
-  authDomain: "ptys-kitchen-pos.firebaseapp.com",
-  projectId: "ptys-kitchen-pos",
-  storageBucket: "ptys-kitchen-pos.firebasestorage.app",
-  messagingSenderId: "393916757457",
-  appId: "1:393916757457:web:4039686b42171bcf99dcf0"
-};
+    authDomain: "ptys-kitchen-pos.firebaseapp.com",
+    projectId: "ptys-kitchen-pos",
+    storageBucket: "ptys-kitchen-pos.firebasestorage.app",
+    messagingSenderId: "393916757457",
+    appId: "1:393916757457:web:4039686b42171bcf99dcf0"
+  };
 
   // Initialize Firebase Connection
   const app = initializeApp(firebaseConfig);
@@ -294,10 +292,6 @@
     }
   }
 
-  // =======================================================
-  // 🔥 LIVE DATABASE SYNC LOGIC
-  // =======================================================
-
   // 1. PUSH NEW ORDER TO CLOUD KITCHEN QUEUE
   async function sendToKitchen() {
     if (orderTotal === 0) return;
@@ -309,7 +303,6 @@
       return `${item}${flavor} x${order[item].qty}`;
     }).join(", ");
 
-    // Generates a randomized 4-digit order number for the day
     const dynamicOrderNum = Math.floor(1000 + Math.random() * 9000); 
     const timestamp = Date.now();
 
@@ -322,10 +315,8 @@
     };
 
     try {
-      // Add the order directly to the Firestore collection
       await addDoc(collection(db, "kitchenQueue"), currentOrderData);
       
-      // Clear local UI order inputs seamlessly
       order = {};
       document.getElementById("total").textContent = "0.00";
       document.getElementById("paid").value = "";
@@ -342,16 +333,14 @@
   // 2. MOVE READY ORDERS FROM KITCHEN TO COMPLETED SALES
   async function finishOrder(docId, orderData) {
     try {
-      // Copy order history into sales log tracking
       await addDoc(collection(db, "completedOrders"), orderData);
-      // Delete from the active kitchen queue document
       await deleteDoc(doc(db, "kitchenQueue", docId));
     } catch (e) {
       console.error("Error moving order: ", e);
     }
   }
 
-  // 3. LISTEN LIVE: Stream incoming Kitchen Queue documents instantly
+  // 3. LISTEN LIVE: Stream incoming Kitchen Queue
   const kitchenQuery = query(collection(db, "kitchenQueue"), orderBy("timestamp", "asc"));
   onSnapshot(kitchenQuery, (snapshot) => {
     const table = document.getElementById("kitchenTable");
@@ -359,7 +348,7 @@
 
     snapshot.forEach((doc) => {
       const pOrder = doc.data();
-      const docId = doc.id; // Unique document tracking string created by Firebase
+      const docId = doc.id;
       const row = table.insertRow();
       
       row.insertCell(0).textContent = pOrder.id;
@@ -371,13 +360,12 @@
       completeBtn.textContent = "Order Ready ✓";
       completeBtn.className = "ready-btn";
       
-      // Pass both the cloud document reference ID and data block
       completeBtn.onclick = () => finishOrder(docId, pOrder);
       actionCell.appendChild(completeBtn);
     });
   });
 
-  // 4. LISTEN LIVE: Stream Completed Sales across all client devices
+  // 4. LISTEN LIVE: Stream Completed Sales
   const completedQuery = query(collection(db, "completedOrders"), orderBy("timestamp", "desc"));
   onSnapshot(completedQuery, (snapshot) => {
     const log = document.getElementById("salesLog");
@@ -400,14 +388,14 @@
     document.getElementById("salesTotal").textContent = currentTotalSales.toFixed(2);
   });
 
-  // Export local visible Sales Log to CSV format
+  // Export visible Sales Log to CSV format
   function exportSalesCSV() {
     const table = document.getElementById("salesLog");
     let csv = [];
     for (let i = 0; i < table.rows.length; i++) {
       let row = [];
       for (let j = 0; j < table.rows[i].cells.length; j++) {
-        row.push('"' + table.rows[i].cells[j].innerText + '"');
+        row.push('="' + table.rows[i].cells[j].innerText + '"');
       }
       csv.push(row.join(","));
     }
@@ -421,7 +409,7 @@
     document.body.removeChild(downloadLink);
   }
 
-// --- End of Day Cleanup Loop ---
+  // --- End of Day Cleanup Loop ---
   async function endOfDayReset() {
     const confirmation = confirm("Are you sure you want to reset for a new day? This will permanently wipe the kitchen queue and sales log. Make sure you exported your CSV first!");
     if (!confirmation) return;
