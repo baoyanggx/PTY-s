@@ -170,11 +170,9 @@
     appId: "1:393916757457:web:4039686b42171bcf99dcf0"
   };
 
-  // Initialize Firebase Connection
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Link UI functions globally so your HTML buttons can still find them
   window.addToOrder = addToOrder;
   window.removeFromOrder = removeFromOrder;
   window.setFlavor = setFlavor;
@@ -191,7 +189,6 @@
     { name: "Crab Rangoon (2)", price: 4.00 },
     { name: "Stuffed Chicken Wing", price: 5.00 },
     { name: "Spring Roll", price: 3.00 },
-    { name: "Fried Dumpling (4)", price: 3.00 },
     { name: "Chicken Thigh", price: 6.00 },
     { name: "Chicken Skewers", price: 4.00 },
     { name: "Boba Tea", price: 7.00 },
@@ -210,7 +207,6 @@
   let order = {};
   let orderTotal = 0;
 
-  // --- Render Menu buttons ---
   const menuDiv = document.getElementById("menu");
   menuItems.forEach(item => {
     const btn = document.createElement("button");
@@ -325,7 +321,6 @@
     }
   }
 
-  // 1. PUSH NEW ORDER TO CLOUD KITCHEN QUEUE
   async function sendToKitchen() {
     if (orderTotal === 0) return;
 
@@ -359,11 +354,9 @@
       updateChange();
     } catch (e) {
       console.error("Error connecting to Firebase: ", e);
-      alert("Could not connect to database. Make sure your Firestore Rules are set to public.");
     }
   }
 
-  // 2. MOVE READY ORDERS FROM KITCHEN TO COMPLETED SALES
   async function finishOrder(docId, orderData) {
     try {
       await addDoc(collection(db, "completedOrders"), orderData);
@@ -373,7 +366,6 @@
     }
   }
 
-  // 3. ACCIDENTAL ORDER REMOVAL DIRECTLY FROM QUEUE
   async function deleteOrder(docId, orderNum) {
     const confirmation = confirm(`Are you sure you want to delete order #${orderNum}? This cannot be undone.`);
     if (!confirmation) return;
@@ -382,11 +374,9 @@
       await deleteDoc(doc(db, "kitchenQueue", docId));
     } catch (e) {
       console.error("Error deleting order: ", e);
-      alert("Failed to delete order. Try again.");
     }
   }
 
-  // 4. LISTEN LIVE: Stream incoming Kitchen Queue
   const kitchenQuery = query(collection(db, "kitchenQueue"), orderBy("timestamp", "asc"));
   onSnapshot(kitchenQuery, (snapshot) => {
     const table = document.getElementById("kitchenTable");
@@ -403,14 +393,12 @@
       
       const actionCell = row.insertCell(3);
       
-      // Complete Button
       const completeBtn = document.createElement("button");
       completeBtn.textContent = "Order Ready ✓";
       completeBtn.className = "ready-btn";
       completeBtn.onclick = () => finishOrder(docId, pOrder);
       actionCell.appendChild(completeBtn);
 
-      // Delete Button
       const deleteBtn = document.createElement("button");
       deleteBtn.textContent = "Delete Order ✕";
       deleteBtn.className = "cancel-btn";
@@ -419,7 +407,6 @@
     });
   });
 
-  // 5. LISTEN LIVE: Stream Completed Sales
   const completedQuery = query(collection(db, "completedOrders"), orderBy("timestamp", "desc"));
   onSnapshot(completedQuery, (snapshot) => {
     const log = document.getElementById("salesLog");
@@ -442,7 +429,6 @@
     document.getElementById("salesTotal").textContent = currentTotalSales.toFixed(2);
   });
 
-  // Export visible Sales Log to CSV format
   function exportSalesCSV() {
     const table = document.getElementById("salesLog");
     let csv = [];
@@ -463,30 +449,26 @@
     document.body.removeChild(downloadLink);
   }
 
-  // --- End of Day Reset ---
   async function endOfDayReset() {
-    const confirmation = confirm("Are you sure you want to reset for a new day? This will permanently wipe the kitchen queue and sales log. Make sure you exported your CSV first!");
+    const confirmation = confirm("Are you sure you want to reset for a new day?");
     if (!confirmation) return;
 
     try {
       const { getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
-      // Fetch and delete everything in the kitchen queue
       const kitchenSnap = await getDocs(collection(db, "kitchenQueue"));
       kitchenSnap.forEach(async (docSnap) => {
         await deleteDoc(doc(db, "kitchenQueue", docSnap.id));
       });
 
-      // Fetch and delete everything in the completed orders log
       const completedSnap = await getDocs(collection(db, "completedOrders"));
       completedSnap.forEach(async (docSnap) => {
         await deleteDoc(doc(db, "completedOrders", docSnap.id));
       });
 
-      alert("POS successfully reset for the new day!");
+      alert("POS successfully reset!");
     } catch (e) {
       console.error("Reset failed: ", e);
-      alert("Error resetting database. Check your browser console logs.");
     }
   }
 </script>
